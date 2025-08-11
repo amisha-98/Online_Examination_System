@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>OnlineExamSystem</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="**\*.aspx" />
+		<Content Include="**\*.master" />
+		<Content Include="**\*.css" />
+		<Content Include="**\*.js" />
+		<Content Include="web.config" />
+	</ItemGroup>
+
+</Project>

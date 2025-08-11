@@ -1,0 +1,435 @@
+
+-- === TABLES ===
+
+IF OBJECT_ID('admin', 'U') IS NOT NULL DROP TABLE admin;
+GO
+CREATE TABLE admin (
+    admin_id INT PRIMARY KEY,
+    admin_name NVARCHAR(500),
+    admin_email NVARCHAR(50),
+    admin_password NVARCHAR(50)
+);
+GO
+
+IF OBJECT_ID('category', 'U') IS NOT NULL DROP TABLE category;
+GO
+CREATE TABLE category (
+    category_id INT PRIMARY KEY,
+    category_name NVARCHAR(50)
+);
+GO
+
+IF OBJECT_ID('exam', 'U') IS NOT NULL DROP TABLE exam;
+GO
+CREATE TABLE exam (
+    exam_id INT PRIMARY KEY,
+    exam_name NVARCHAR(500),
+    exam_description NVARCHAR(MAX),
+    exam_date DATE,
+    exam_duration INT,
+    exam_marks INT,
+    exam_negativemarks INT,
+    exam_totalquestion INT,
+    category_fid INT,
+    subject_fid INT,
+    exampass_marks INT
+);
+GO
+
+IF OBJECT_ID('question', 'U') IS NOT NULL DROP TABLE question;
+GO
+CREATE TABLE question (
+    question_id INT PRIMARY KEY,
+    question_name NVARCHAR(MAX),
+    option_one NVARCHAR(MAX),
+    option_two NVARCHAR(MAX),
+    option_three NVARCHAR(MAX),
+    option_four NVARCHAR(MAX),
+    question_answer INT,
+    exam_fid INT
+);
+GO
+
+IF OBJECT_ID('result', 'U') IS NOT NULL DROP TABLE result;
+GO
+CREATE TABLE result (
+    result_id INT PRIMARY KEY,
+    result_status NVARCHAR(50),
+    result_score INT,
+    user_email NVARCHAR(50),
+    totalquestion INT,
+    exam_fid INT,
+    exam_date DATE
+);
+GO
+
+IF OBJECT_ID('subject', 'U') IS NOT NULL DROP TABLE subject;
+GO
+CREATE TABLE subject (
+    subject_id INT IDENTITY(1,1) PRIMARY KEY,
+    subject_name NVARCHAR(50),
+    category_fid INT
+);
+GO
+
+IF OBJECT_ID('users', 'U') IS NOT NULL DROP TABLE users;
+GO
+CREATE TABLE users (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_fname NVARCHAR(50),
+    user_lname NVARCHAR(50),
+    user_email NVARCHAR(50),
+    user_password NVARCHAR(100)
+);
+GO
+
+-- === STORED PROCEDURES ===
+
+IF OBJECT_ID('spaddexam', 'P') IS NOT NULL DROP PROCEDURE spaddexam;
+GO
+CREATE PROCEDURE spaddexam
+  @examname NVARCHAR(500),
+  @examdis NVARCHAR(MAX),
+  @examdate DATE,
+  @examduration INT,
+  @exampassmarks INT,
+  @exammarks INT,
+  @examsubjectfid INT,
+  @examcategoryfid INT
+AS
+BEGIN
+  INSERT INTO exam (exam_name, exam_description, exam_date, exam_duration, exampass_marks, exam_marks, subject_fid, category_fid)
+  VALUES (@examname, @examdis, @examdate, @examduration, @exampassmarks, @exammarks, @examsubjectfid, @examcategoryfid);
+END
+GO
+
+IF OBJECT_ID('spAddquestion', 'P') IS NOT NULL DROP PROCEDURE spAddquestion;
+GO
+CREATE PROCEDURE spAddquestion
+  @questionname NVARCHAR(MAX),
+  @optionone NVARCHAR(MAX),
+  @optiontwo NVARCHAR(MAX),
+  @optionthree NVARCHAR(MAX),
+  @optionfour NVARCHAR(MAX),
+  @questionanswer INT,
+  @examfid INT
+AS
+BEGIN
+  INSERT INTO question (question_name, option_one, option_two, option_three, option_four, question_answer, exam_fid)
+  VALUES (@questionname, @optionone, @optiontwo, @optionthree, @optionfour, @questionanswer, @examfid);
+END
+GO
+
+IF OBJECT_ID('spAdminlogin', 'P') IS NOT NULL DROP PROCEDURE spAdminlogin;
+GO
+CREATE PROCEDURE spAdminlogin
+  @admin_email NVARCHAR(50),
+  @password NVARCHAR(100)
+AS
+BEGIN
+  DECLARE @count INT;
+  SELECT @count = COUNT(*) FROM admin WHERE admin_email = @admin_email AND admin_password = @password;
+
+  IF (@count = 1)
+    SELECT 1 AS returnvalue;
+  ELSE
+    SELECT -1 AS returnvalue;
+END
+GO
+
+IF OBJECT_ID('spAdminRegisterinsert', 'P') IS NOT NULL DROP PROCEDURE spAdminRegisterinsert;
+GO
+CREATE PROCEDURE spAdminRegisterinsert
+  @admin_name NVARCHAR(50),
+  @admin_email NVARCHAR(50),
+  @password NVARCHAR(100)
+AS
+BEGIN
+  DECLARE @count INT;
+  DECLARE @returnvalue INT;
+
+  SELECT @count = COUNT(*) FROM admin WHERE admin_email = @admin_email;
+
+  IF @count > 0
+    SET @returnvalue = -1;
+  ELSE
+  BEGIN
+    SET @returnvalue = 1;
+    INSERT INTO admin (admin_name, admin_email, admin_password)
+    VALUES (@admin_name, @admin_email, @password);
+  END
+
+  SELECT @returnvalue AS returnvalue;
+END
+GO
+
+IF OBJECT_ID('spEditexam', 'P') IS NOT NULL DROP PROCEDURE spEditexam;
+GO
+CREATE PROCEDURE spEditexam
+  @examid INT,
+  @examname NVARCHAR(100),
+  @examdiscription NVARCHAR(MAX),
+  @examdate DATE,
+  @examduration INT,
+  @exampassmarks INT,
+  @examnmarks INT,
+  @categoryfid INT,
+  @subjectfid INT
+AS
+BEGIN
+  UPDATE exam
+  SET exam_name = @examname,
+      exam_description = @examdiscription,
+      exam_date = @examdate,
+      exam_duration = @examduration,
+      exampass_marks = @exampassmarks,
+      exam_marks = @examnmarks,
+      category_fid = @categoryfid,
+      subject_fid = @subjectfid
+  WHERE exam_id = @examid;
+END
+GO
+
+IF OBJECT_ID('spEditexamfill', 'P') IS NOT NULL DROP PROCEDURE spEditexamfill;
+GO
+CREATE PROCEDURE spEditexamfill
+  @examid INT
+AS
+BEGIN
+  SELECT * FROM exam WHERE exam_id = @examid;
+END
+GO
+
+IF OBJECT_ID('spEditquestion', 'P') IS NOT NULL DROP PROCEDURE spEditquestion;
+GO
+CREATE PROCEDURE spEditquestion
+  @questionid INT,
+  @questionname NVARCHAR(MAX),
+  @optionone NVARCHAR(MAX),
+  @optiontwo NVARCHAR(MAX),
+  @optionthree NVARCHAR(MAX),
+  @optionfour NVARCHAR(MAX),
+  @questionanswer INT,
+  @examfid INT
+AS
+BEGIN
+  UPDATE question
+  SET question_name = @questionname,
+      option_one = @optionone,
+      option_two = @optiontwo,
+      option_three = @optionthree,
+      option_four = @optionfour,
+      question_answer = @questionanswer,
+      exam_fid = @examfid
+  WHERE question_id = @questionid;
+END
+GO
+
+IF OBJECT_ID('spEditquestionfill', 'P') IS NOT NULL DROP PROCEDURE spEditquestionfill;
+GO
+CREATE PROCEDURE spEditquestionfill
+  @questionid INT
+AS
+BEGIN
+  SELECT * FROM question
+  LEFT JOIN exam ON question.exam_fid = exam.exam_id
+  WHERE question_id = @questionid;
+END
+GO
+-- Drop and create spUserresult
+IF OBJECT_ID('spUserresult', 'P') IS NOT NULL DROP PROCEDURE spUserresult;
+GO
+CREATE PROCEDURE spUserresult
+  @email NVARCHAR(50)
+AS
+BEGIN
+  SELECT * FROM result
+  JOIN exam ON result.exam_fid = exam.exam_id
+  WHERE user_email = @email;
+END
+GO
+
+-- Drop and create spUserslogin
+IF OBJECT_ID('spUserslogin', 'P') IS NOT NULL DROP PROCEDURE spUserslogin;
+GO
+CREATE PROCEDURE spUserslogin
+  @user_email NVARCHAR(50),
+  @password NVARCHAR(100)
+AS
+BEGIN
+  DECLARE @count INT;
+  SELECT @count = COUNT(*) FROM users WHERE user_email = @user_email AND user_password = @password;
+
+  IF @count = 1
+    SELECT 1 AS returnvalue;
+  ELSE
+    SELECT -1 AS returnvalue;
+END
+GO
+
+-- Drop and create spUsersRegisterinsert
+IF OBJECT_ID('spUsersRegisterinsert', 'P') IS NOT NULL DROP PROCEDURE spUsersRegisterinsert;
+GO
+CREATE PROCEDURE spUsersRegisterinsert
+  @user_fname NVARCHAR(50),
+  @user_lname NVARCHAR(50),
+  @email NVARCHAR(50),
+  @password NVARCHAR(100)
+AS
+BEGIN
+  DECLARE @count INT;
+  DECLARE @returnvalue INT;
+
+  SELECT @count = COUNT(*) FROM users WHERE user_email = @email;
+
+  IF @count > 0
+    SET @returnvalue = -1;
+  ELSE
+  BEGIN
+    SET @returnvalue = 1;
+    INSERT INTO users (user_fname, user_lname, user_password, user_email)
+    VALUES (@user_fname, @user_lname, @password, @email);
+  END
+
+  SELECT @returnvalue AS returnvalue;
+END
+GO
+-- Drop and create spSubjectedit
+IF OBJECT_ID('spSubjectedit', 'P') IS NOT NULL DROP PROCEDURE spSubjectedit;
+GO
+CREATE PROCEDURE spSubjectedit
+  @subjectid INT,
+  @subjectname NVARCHAR(50),
+  @categoryfid INT
+AS
+BEGIN
+  UPDATE subject
+  SET subject_name = @subjectname,
+      category_fid = @categoryfid
+  WHERE subject_id = @subjectid;
+END
+GO
+
+-- Drop and create spSubjecteditfill
+IF OBJECT_ID('spSubjecteditfill', 'P') IS NOT NULL DROP PROCEDURE spSubjecteditfill;
+GO
+CREATE PROCEDURE spSubjecteditfill
+  @subjectid INT
+AS
+BEGIN
+  SELECT * FROM subject
+  WHERE subject_id = @subjectid;
+END
+GO
+
+-- Drop and create spSubjectList
+IF OBJECT_ID('spSubjectList', 'P') IS NOT NULL DROP PROCEDURE spSubjectList;
+GO
+CREATE PROCEDURE spSubjectList
+AS
+BEGIN
+  SELECT * FROM subject;
+END
+GO
+
+-- Drop and create spExamList
+IF OBJECT_ID('spExamList', 'P') IS NOT NULL DROP PROCEDURE spExamList;
+GO
+CREATE PROCEDURE spExamList
+AS
+BEGIN
+  SELECT * FROM exam;
+END
+GO
+
+-- Drop and create spExamListDetails
+IF OBJECT_ID('spExamListDetails', 'P') IS NOT NULL DROP PROCEDURE spExamListDetails;
+GO
+CREATE PROCEDURE spExamListDetails
+  @examid INT
+AS
+BEGIN
+  SELECT * FROM exam
+  WHERE exam_id = @examid;
+END
+GO
+
+-- Drop and create spExamquestion
+IF OBJECT_ID('spExamquestion', 'P') IS NOT NULL DROP PROCEDURE spExamquestion;
+GO
+CREATE PROCEDURE spExamquestion
+  @examid INT
+AS
+BEGIN
+  SELECT * FROM question
+  WHERE exam_fid = @examid;
+END
+GO
+
+-- Drop and create spExamserachcategory
+IF OBJECT_ID('spExamserachcategory', 'P') IS NOT NULL DROP PROCEDURE spExamserachcategory;
+GO
+CREATE PROCEDURE spExamserachcategory
+  @categoryid INT
+AS
+BEGIN
+  SELECT * FROM exam
+  WHERE category_fid = @categoryid;
+END
+GO
+
+-- Drop and create spgetallquestion
+IF OBJECT_ID('spgetallquestion', 'P') IS NOT NULL DROP PROCEDURE spgetallquestion;
+GO
+CREATE PROCEDURE spgetallquestion
+AS
+BEGIN
+  SELECT * FROM question;
+END
+GO
+
+-- Drop and create spQuestionserachexam
+IF OBJECT_ID('spQuestionserachexam', 'P') IS NOT NULL DROP PROCEDURE spQuestionserachexam;
+GO
+CREATE PROCEDURE spQuestionserachexam
+  @examid INT
+AS
+BEGIN
+  SELECT * FROM question
+  WHERE exam_fid = @examid;
+END
+GO
+
+-- Drop and create spResultinsert
+IF OBJECT_ID('spResultinsert', 'P') IS NOT NULL DROP PROCEDURE spResultinsert;
+GO
+CREATE PROCEDURE spResultinsert
+  @email NVARCHAR(50),
+  @score INT,
+  @totalquestion INT,
+  @resultstatus NVARCHAR(50),
+  @examfid INT,
+  @examdate DATE
+AS
+BEGIN
+  INSERT INTO result (result_status, result_score, user_email, totalquestion, exam_fid, exam_date)
+  VALUES (@resultstatus, @score, @email, @totalquestion, @examfid, @examdate);
+END
+GO
+-- Drop and create spResultinsert
+IF OBJECT_ID('spResultinsert', 'P') IS NOT NULL DROP PROCEDURE spResultinsert;
+GO
+CREATE PROCEDURE spResultinsert
+  @email NVARCHAR(50),
+  @score INT,
+  @totalquestion INT,
+  @resultstatus NVARCHAR(50),
+  @examfid INT,
+  @examdate DATE
+AS
+BEGIN
+  INSERT INTO result (result_status, result_score, user_email, totalquestion, exam_fid, exam_date)
+  VALUES (@resultstatus, @score, @email, @totalquestion, @examfid, @examdate);
+END
+GO
+
